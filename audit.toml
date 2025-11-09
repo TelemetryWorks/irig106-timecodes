@@ -1,0 +1,16 @@
+# audit.toml — configuration for your project’s security/advisory audit step.
+# This file points the audit process at a local clone/checkout of an advisory database.
+
+[database]
+# Path to the advisory database on disk.
+# Use a relative path (from the repo root) to keep the project portable in CI and for contributors.
+# Example layouts:
+#   - tools/advisory-db         (vendored/checked-in folder or submodule)
+#   - .cache/advisory-db        (ignored cache directory)
+#   - /opt/security/advisory-db (absolute path on build agents)
+path = "tools/advisory-db"
+
+# Notes:
+# - If you move the advisory DB, update this path.
+# - Some tools can refresh the DB automatically; others expect you to keep it up to date.
+# - Prefer a read-only checkout in CI to avoid dirty diffs.
