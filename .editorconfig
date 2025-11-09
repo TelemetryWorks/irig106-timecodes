@@ -1,0 +1,23 @@
+# This is the top-level EditorConfig file
+root = true
+
+# Apply these rules to all files
+[*]
+
+# Use UTF-8 encoding
+charset = utf-8
+
+# Use Unix-style line endings
+end_of_line = lf
+
+# Always end files with a newline
+insert_final_newline = true
+
+# Use spaces instead of tabs
+indent_style = space
+
+# Each indent is 4 spaces
+indent_size = 4
+
+# Strip trailing whitespace on save
+trim_trailing_whitespace = true
