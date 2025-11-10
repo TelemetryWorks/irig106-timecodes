@@ -55,22 +55,24 @@ This project maintains multiple layers of security controls designed to limit at
 
 ### 3.2 Supply Chain Integrity
 - CycloneDX SBOM generation for each release
-- Provenance metadata for builds (SLSA-aligned where feasible)
+- Automated, scripted builds executed in GitHub Actions (SLSA Level 1)
+- Provenance metadata generated and published for each release
 - Reproducible or deterministic builds where supported
-- Pinned and reviewed toolchain versions
-- Pinned direct dependencies and regular audit of transitive dependencies
-- Mandatory review on all dependency bumps (automated PRs allowed but not auto-merged)
+- Pinned and reviewed toolchain versions (`rust-toolchain.toml`)
+- Pinned direct dependencies with regular audit of transitive ones
+- Mandatory review on dependency changes (automated PRs allowed, not auto-merged)
 
 ### 3.3 Release Security
 - Cryptographically signed release artifacts using trusted keys or Sigstore
-- Published checksums for every build output
-- Verification steps in CI before publishing
+- Published checksums for all artifacts
+- Provenance attestation made available per release
+- Verification steps in CI prior to publishing
 
 ### 3.4 CI and Infrastructure Controls
 - Least-privilege tokens and short-lived credentials for all CI workflows
-- Immutable build environments or pinned containers
-- Protection rules on main branches with required status checks
-- Enforcement of signed commits for maintainers (optional for contributors, but encouraged)
+- Immutable or pinned CI build environments
+- Branch protection rules enforced on main branches
+- Signed commits required for maintainers (encouraged for contributors)
 
 ## 4. Incident Response Process
 
@@ -79,7 +81,7 @@ If a security incident is confirmed:
 2. Develop and test a patch or mitigation
 3. Notify the reporter of progress
 4. Release fixed versions and advisory notes
-5. Update SBOM and provenance metadata accordingly
+5. Update SBOM and provenance metadata
 6. Publish a coordinated security advisory with CVE assignment if appropriate
 
 ## 5. Commitment to Researchers
