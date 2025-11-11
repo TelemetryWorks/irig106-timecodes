@@ -1,202 +1,171 @@
 rules:
-  # ========= Safety =========
+  # ------------ Safety ------------
+
   - id: rust.forbid-unsafe
-    languages: [rust]
     message: "Unsafe Rust is forbidden."
     severity: ERROR
+    languages: [rust]
     patterns:
-      - pattern: |
-          unsafe { ... }
+      - pattern: "unsafe { ... }"
     paths:
       exclude:
-        - "tests/**"
+        - tests/**
         - "**/*_test.rs"
-        - "benches/**"
-        - "examples/**"
+        - "**/tests/**/*.rs"
 
-  - id: rust.transmute-or-unchecked
-    languages: [rust]
-    message: "Use of `transmute`/`*_unchecked` is unsafe and usually unnecessary."
+  - id: rust.forbid-allow-unsafe-attr
+    message: "Do not allow unsafe code via attributes."
     severity: ERROR
-    pattern-either:
-      - pattern: std::mem::transmute(...)
-      - pattern: core::mem::transmute(...)
-      - pattern: $T::from_utf8_unchecked(...)
-      - pattern: $SL.get_unchecked(...)
-      - pattern: $SL.get_unchecked_mut(...)
-
-  # ========= Panics & macros =========
-  - id: rust.no-panicking-macros
     languages: [rust]
-    message: "Panicking macro used (`panic!`, `todo!`, `unimplemented!`, `unreachable!`). Prefer Result/Option flows."
+    pattern: "#[allow(unsafe_code)]"
+
+  - id: rust.forbid-std-mem-transmute
+    message: "Avoid std::mem::transmute; it is highly unsafe."
     severity: ERROR
-    pattern-either:
-      - pattern: panic!(...)
-      - pattern: todo!(...)
-      - pattern: unimplemented!(...)
-      - pattern: unreachable!(...)
-    paths:
-      exclude:
-        - "tests/**"
-        - "**/*_test.rs"
-        - "benches/**"
-        - "examples/**"
-        - "build.rs"
-
-  - id: rust.no-dbg-or-prints
     languages: [rust]
-    message: "Debug prints left in code (`dbg!`, `println!`, `eprintln!`, `print!`)."
-    severity: WARNING
-    pattern-either:
-      - pattern: dbg!(...)
-      - pattern: println!(...)
-      - pattern: eprintln!(...)
-      - pattern: print!(...)
-    paths:
-      exclude:
-        - "tests/**"
-        - "**/*_test.rs"
-        - "benches/**"
-        - "examples/**"
-    fix-regex:
-      # quick, safe auto-fix for bare dbg!(); leaves arguments in place commented out
-      regex: 'dbg!\((.*)\);?'
-      replacement: '// removed dbg!: \1'
+    pattern: "std::mem::transmute(..)"
 
-  # ========= unwrap/expect =========
-  - id: rust.no-unwrap-on-result-or-option
-    languages: [rust]
-    message: "Avoid `.unwrap()` on Result/Option in non-test code. Use `?` or handle the error."
+  - id: rust.forbid-unchecked-apis
+    message: "Use of *_unchecked APIs is unsafe."
     severity: ERROR
-    pattern: $X.unwrap()
-    paths:
-      exclude:
-        - "tests/**"
-        - "**/*_test.rs"
-        - "benches/**"
-        - "examples/**"
-        - "build.rs"
-
-  - id: rust.expect-needs-message
     languages: [rust]
-    message: "Prefer `.expect(\"meaningful message\")` over `.unwrap()` and ensure the message is non-empty."
-    severity: WARNING
-    patterns:
-      - pattern: $X.expect($MSG)
-      - metavariable-regex:
-          metavariable: $MSG
-          regex: '^"(?!\s*").{3,}"'   # crude check: at least 3 non-quote chars
-    paths:
-      exclude:
-        - "tests/**"
-        - "**/*_test.rs"
-        - "benches/**"
-        - "examples/**"
-
-  # ========= Async hygiene =========
-  - id: rust.no-blocking-in-async
-    languages: [rust]
-    message: "Blocking call in `async` context. Use async equivalents or `spawn_blocking`."
-    severity: ERROR
-    patterns:
-      - pattern-inside: |
-          async fn $F(... ) { ... }
-      - pattern-either:
-          - pattern: std::thread::sleep(...)
-          - pattern: std::fs::read(...)
-          - pattern: std::fs::read_to_string(...)
-          - pattern: std::fs::write(...)
-          - pattern: std::fs::remove_file(...)
-          - pattern: std::process::Command::new(...).output(...)
-          - pattern: std::process::Command::new(...).status(...)
-  - id: rust.no-thread-spawn-in-async
-    languages: [rust]
-    message: "Spawning OS threads in async contexts can starve executors; prefer runtime-specific spawning."
-    severity: WARNING
-    patterns:
-      - pattern-inside: |
-          async fn $F(... ) { ... }
-      - pattern: std::thread::spawn(...)
-
-  # ========= Attributes & lint hygiene =========
-  - id: rust.no-wide-lint-allows
-    languages: [rust]
-    message: "Broad lint allows make issues invisible. Avoid `#![allow(dead_code)]`, `#![allow(unused)]`, etc."
-    severity: WARNING
     pattern-either:
-      - pattern: #![allow(dead_code)]
-      - pattern: #![allow(unused)]
-      - pattern: #![allow(unused_variables)]
-      - pattern: #![allow(clippy::all)]
+      - pattern: "std::slice::from_raw_parts(..)"
+      - pattern: "std::slice::from_raw_parts_mut(..)"
+      - pattern: "std::str::from_utf8_unchecked(..)"
+      - pattern: "std::str::from_utf8_unchecked_mut(..)"
+      - pattern: "std::ptr::read_unaligned(..)"
+      - pattern: "std::ptr::write_unaligned(..)"
+      - pattern: "$X.get_unchecked(..)"
+      - pattern: "$X.get_unchecked_mut(..)"
 
-  - id: rust.no-allow-in-prod-mod
+  # ------------ Panics & Todos (not in tests/bin) ------------
+
+  - id: rust.no-panic-like
+    message: "Avoid panicking in library/production code (use Result/thiserror/anyhow)."
+    severity: ERROR
     languages: [rust]
-    message: "Avoid per-item `#[allow(...)]` in production modules."
-    severity: INFO
-    pattern: #[allow($LINT)]
+    pattern-either:
+      - pattern: "panic!(..)"
+      - pattern: "unreachable!(..)"
+      - pattern: "unimplemented!(..)"
+      - pattern: "todo!(..)"
     paths:
       exclude:
-        - "tests/**"
+        - tests/**
         - "**/*_test.rs"
-        - "benches/**"
-        - "examples/**"
+        - "**/tests/**/*.rs"
+        - "src/bin/**"
 
-  # ========= Comments / TODOs =========
   - id: rust.todo-comment
-    languages: [rust]
     message: "Leftover TODO."
     severity: WARNING
+    languages: [rust]
     patterns:
       - pattern: "// TODO: ..."
-    paths:
-      exclude:
-        - "tests/**"
-        - "**/*_test.rs"
-        - "benches/**"
-        - "examples/**"
 
-  # ========= APIs with footguns =========
-  - id: rust.duration-from-millis
+  # ------------ unwrap/expect (not in tests/bin) ------------
+
+  - id: rust.no-unwrap-expect
+    message: "Avoid unwrap()/expect() in non-test code. Prefer `?` or handled errors."
+    severity: ERROR
     languages: [rust]
-    message: "Prefer `Duration::from_secs_f64`/`from_millis` checks; watch for unit mistakes."
-    severity: INFO
     pattern-either:
-      - pattern: std::time::Duration::from_millis($X)
-      - pattern: core::time::Duration::from_millis($X)
-
-  - id: rust.hashmap-default-hasher
-    languages: [rust]
-    message: "Large HashMap with default hasher may be slow; consider `hashbrown` or faster hasher in hot paths."
-    severity: INFO
-    pattern: std::collections::HashMap::<$K,$V>::new()
-
-  # ========= Performance footguns =========
-  - id: rust.unnecessary-clone
-    languages: [rust]
-    message: "Possible unnecessary `.clone()`. Consider borrowing instead."
-    severity: INFO
-    pattern: $X.clone()
-    pattern-not-inside: |
-      let $Y = $X.clone();
+      - pattern: "$X.unwrap()"
+      - pattern: "$X.expect(..)"
+      - pattern: "Result::unwrap($X)"
+      - pattern: "Option::unwrap($X)"
+      - pattern: "Result::expect($X, ..)"
+      - pattern: "Option::expect($X, ..)"
     paths:
       exclude:
-        - "tests/**"
+        - tests/**
         - "**/*_test.rs"
-        - "benches/**"
-        - "examples/**"
+        - "**/tests/**/*.rs"
+        - "src/bin/**"
 
-  # ========= Crate boundaries =========
-  - id: rust.no-println-in-library
+  - id: rust.no-unwrap-or_else-panic
+    message: "Avoid panicking error paths; bubble up or handle gracefully."
+    severity: ERROR
     languages: [rust]
-    message: "Avoid printing in library code; return errors or use logging."
+    pattern: "$X.unwrap_or_else(|| panic!(..))"
+    paths:
+      exclude:
+        - tests/**
+        - "**/*_test.rs"
+        - "**/tests/**/*.rs"
+        - "src/bin/**"
+
+  # ------------ Debug noise (not in tests/bin) ------------
+
+  - id: rust.no-dbg-macro
+    message: "Remove dbg! macros from production code."
     severity: WARNING
-    pattern-either:
-      - pattern: println!(...)
-      - pattern: eprintln!(...)
+    languages: [rust]
+    pattern: "dbg!(..)"
     paths:
       exclude:
-        - "src/main.rs"
-        - "bin/**"
-        - "examples/**"
-        - "tests/**"
+        - tests/**
         - "**/*_test.rs"
+        - "**/tests/**/*.rs"
+        - "src/bin/**"
+
+  - id: rust.no-println-in-lib
+    message: "Avoid println!/eprintln! in libraries; prefer tracing/log."
+    severity: WARNING
+    languages: [rust]
+    pattern-either:
+      - pattern: "println!(..)"
+      - pattern: "eprintln!(..)"
+    paths:
+      exclude:
+        - tests/**
+        - "**/*_test.rs"
+        - "**/tests/**/*.rs"
+        - "src/bin/**"
+
+  # ------------ Concurrency & blocking pitfalls ------------
+
+  - id: rust.no-std-thread-sleep-in-async
+    message: "Don't block async executors; use tokio::time::sleep or equivalent."
+    severity: ERROR
+    languages: [rust]
+    patterns:
+      - pattern: "std::thread::sleep(..)"
+      - pattern-inside: |
+          async fn $F(..) -> $R { ... }
+
+  - id: rust.no-blocking-in-async
+    message: "Blocking calls inside async contexts; use spawn_blocking or move to sync."
+    severity: WARNING
+    languages: [rust]
+    pattern-either:
+      - pattern: "std::fs::$F(..)"
+      - pattern: "std::process::Command::new(..)"
+    pattern-inside: |
+      async fn $FNAME(..) -> $RET { ... }
+
+  # ------------ FFI safety hints ------------
+
+  - id: rust.no-from_raw_parts-maybeuninit
+    message: "Be careful with raw parts / MaybeUninit; prefer safe abstractions."
+    severity: WARNING
+    languages: [rust]
+    pattern-either:
+      - pattern: "std::mem::MaybeUninit::<$T>::uninit()"
+      - pattern: "std::slice::from_raw_parts(..)"
+      - pattern: "std::slice::from_raw_parts_mut(..)"
+
+  # ------------ Lints for crates (optional strictness) ------------
+
+  - id: rust.forbid-dead_code-in-lib
+    message: "Dead code in library—clean it up or gate with cfg."
+    severity: WARNING
+    languages: [rust]
+    pattern: "#[allow(dead_code)]"
+    paths:
+      exclude:
+        - tests/**
+        - "**/*_test.rs"
+        - "**/tests/**/*.rs"
+        - "src/bin/**"
