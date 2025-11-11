@@ -1,0 +1,14 @@
+# Pin the Rust toolchain version to ensure reproducible builds across CI/CD,
+# local development, and ephemeral environments.
+[toolchain]
+channel = "1.81.0"           # Stable version pin; update intentionally via release process
+
+# Required components for linting, formatting, and CI quality gates.
+components = [
+    "clippy",                # Static analysis / lints
+    "rustfmt"                # Formatting enforcement
+]
+
+# Optionally uncomment to ensure the toolchain is installed automatically:
+# profile = "minimal"        # Minimizes install footprint while including essentials
+# targets = ["x86_64-unknown-linux-gnu"]  # Add if building for multiple targets
