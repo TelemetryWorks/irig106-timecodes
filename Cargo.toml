@@ -1,0 +1,93 @@
+[package]
+name = "irig106_timecodes"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0 OR MIT"
+description = "IRIG-106 timecode parsing/formatting utilities with strong security posture."
+repository = "https://github.com/YOUR_ORG/irig106_timecodes"
+homepage = "https://github.com/YOUR_ORG/irig106_timecodes"
+keywords = ["irig-106", "timecode", "telemetry", "ch10", "ieee-1588"]
+categories = ["parsing", "science", "aerospace"]
+
+[lib]
+name = "irig106_timecodes"
+path = "src/lib.rs"
+
+[features]
+default = []
+# Future: enable specific encodings via features like "irig-b", "day-seconds", etc.
+
+[dependencies]
+thiserror = "1.0"
+
+[dev-dependencies]
+criterion = "0.5"
+
+# ------------------------------------------------------------------
+# Develop Profile
+# ------------------------------------------------------------------
+[profile.dev]
+# Fast, debuggable developer builds
+opt-level = 0            # prioritize compile speed
+debug = 2                # full debug info
+debug-assertions = true  # keep assertions on in dev
+overflow-checks = true
+lto = "off"
+codegen-units = 256      # many units = faster compile
+incremental = true       # speed up iterative builds
+panic = "unwind"         # easier backtraces during dev
+strip = "none"           # keep symbols (handled by Cargo, not rustflags)
+
+# ------------------------------------------------------------------
+# Release Profile
+# ------------------------------------------------------------------
+[profile.release]
+# CI- and production-friendly release builds
+opt-level = "z"          # or "s" for size, "3" for max speed. Pick your goal.
+lto = "fat"              # maximal cross-crate optimization
+# ------------------------------------------------------------------
+# codegen-units=1
+# ------------------------------------------------------------------
+# Rust normally parallelizes code generation across many units to
+# speed up compilation. However, having multiple units can lead to
+# slightly less efficient machine code and less predictable output.
+#
+# Setting to 1:
+#   ✓ Improves runtime performance and cross-module optimization.
+#   ✓ Produces more deterministic builds.
+#   ✗ Slows down compile times (acceptable for release artifacts).
+#
+codegen-units = 1        # best runtime performance (slower compile)
+debug = 0                # no debug info in release artifact
+debug-assertions = false
+overflow-checks = false
+incremental = false
+panic = "abort"          # smaller binary; faster unwinds
+# ------------------------------------------------------------------
+# strip=symbols
+# ------------------------------------------------------------------
+# Removes symbol names (function names, module paths, etc.) from
+# the compiled binary.
+#
+# Effects:
+#   ✓ Smaller binaries.
+#   ✓ Reduced metadata that could aid reverse engineering.
+#   ✓ Cleaner release artifacts for distribution.
+#   ✗ Makes debugging harder unless using separate debug symbols.
+#
+# Note: For production systems, debug symbols should be stored in
+# a secure artifact repo (e.g., S3/R2/Nexus) as separate `.dSYM` or
+# `.pdb` files depending on platform.
+#
+strip = "symbols"        # let Cargo strip symbols (stable; no rustflags needed)
+
+# ------------------------------------------------------------------
+# Release with Debug Symbols Profile
+# ------------------------------------------------------------------
+# (Optional) A “release-with-debuginfo” profile for production crash forensics.
+# Build with: cargo build --profile=relwithdebinfo
+[profile.relwithdebinfo]
+inherits = "release"
+debug = 1                # keep minimal debuginfo (DWARF) for symbolization
+strip = "none"           # don't strip here; ship .dSYM/.pdb/.dbg separately if desired
+lto = "thin"             # a balance: faster than 'fat', still good optimizations
