@@ -1,0 +1,127 @@
+# deny.toml — enterprise profile
+
+########################################
+# Advisories
+########################################
+[advisories]
+# Your original policy
+vulnerability = "deny"
+unmaintained  = "deny"
+yanked        = "deny"
+notice        = "warn"
+
+# Recommended: fetch with git CLI if you have special auth requirements
+# git-fetch-with-cli = true
+
+########################################
+# Licenses
+########################################
+[licenses]
+# Your original allowlist
+allow = [
+  "Apache-2.0",
+  "MIT",
+  "BSD-3-Clause",
+  "BSD-2-Clause",
+  "ISC",
+  "Unicode-DFS-2016",
+]
+copyleft  = "deny"
+unlicensed = "deny"
+default    = "deny"
+
+# Optional: set a high confidence threshold for text inference
+# confidence-threshold = 0.93
+
+# Optional: exceptions or clarifications live here
+# [[licenses.exceptions]]
+# allow = ["Zlib"]
+# crate  = "some-crate"
+
+########################################
+# Bans (optional but very useful)
+########################################
+[bans]
+# Fail on multiple versions of the same crate (helps dedupe / shrink attack surface)
+multiple-versions = "deny"
+
+# Disallow wildcard dependency versions like "*"
+wildcards = "deny"
+
+# Be strict about default features on third-party crates
+external-default-features = "deny"
+
+# Useful: highlight simplest path when investigating duplicates
+highlight = "simplest-path"
+
+# Example denials/use-instead (customize for your org)
+# deny = [
+#   { crate = "openssl",     use-instead = "rustls", reason = "Org policy: TLS via rustls" },
+#   { crate = "openssl-sys", use-instead = "rustls" },
+# ]
+
+# Temporarily skip duplicate checks for known blockers (pin with versions!)
+# skip = [
+#   { crate = "some-crate:<1.2.3", reason = "Waiting on upstream fix PR #123" },
+# ]
+
+# Feature control examples (uncomment and tailor)
+# [[bans.features]]
+# crate  = "time"
+# deny   = ["formatting"]
+# exact  = false
+
+# Optional: workspace dependency hygiene
+[bans.workspace-dependencies]
+duplicates = "deny"
+include-path-dependencies = true
+unused = "deny"
+
+########################################
+# Sources (recommended for many orgs)
+########################################
+[sources]
+# Fail if a crate comes from an unknown registry or git repo
+unknown-registry = "deny"
+unknown-git      = "deny"
+
+# Require the most specific git pin: a commit SHA
+required-git-spec = "rev"
+
+# Only allow crates.io (tighten further if you mirror crates)
+allow-registry = [
+  "https://github.com/rust-lang/crates.io-index",
+]
+
+# Allowlist exact git repos (keep tight; prefer registries)
+allow-git = [
+  # "https://github.com/YourOrg/your-forked-crate",
+]
+
+# Allow organization-level Git hosting (use sparingly)
+[sources.allow-org]
+# Example: allow corporate forks on these providers
+# github   = ["YourOrg"]
+# gitlab   = ["your-gitlab-group"]
+# bitbucket = ["your-bitbucket-team"]
+
+# If you host internal repos, you can allow a private prefix
+# [sources]
+# private = ["https://git.internal.example.com/your-group"]
+
+# Warn if you configured an allow-* source that isn't used
+unused-allowed-source = "warn"
+
+########################################
+# (Optional) Graph tuning for CI determinism
+########################################
+# [graph]
+# all-features = true
+# exclude-dev  = true
+# targets = [
+#   "x86_64-unknown-linux-gnu",
+#   "aarch64-unknown-linux-gnu",
+#   "x86_64-apple-darwin",
+#   "aarch64-apple-darwin",
+#   "x86_64-pc-windows-msvc",
+# ]
