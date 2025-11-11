@@ -1,0 +1,5 @@
+[book]
+title = "IRIG-106 Timecodes: Secure Development & Assurance Report"
+authors = ["Your Team"]
+language = "en"
+src = "src"
