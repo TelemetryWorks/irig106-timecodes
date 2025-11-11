@@ -1,0 +1,111 @@
+# ======================================================================
+# Cargo Build Configuration
+# ======================================================================
+# This configuration defines deterministic, optimized, security-aware
+# builds for all Rust crates in this workspace. It covers:
+#
+#   • predictable, reproducible builds (supply-chain requirement)
+#   • hardened binaries with minimal metadata leakage
+#   • consistent performance characteristics
+#   • smaller artifact sizes
+#
+# These settings support:
+#   - NIST Secure Software Development Framework (SSDF)
+#   - DoD software supply chain integrity requirements
+#   - Reproducible build pipelines (GitHub Actions, offline CI, etc.)
+#
+# How to build (no edits required between dev and release):
+#   • Development build (fast compile, debug info):
+#       cargo build
+#   • Release build (optimized, stripped, LTO):
+#       cargo build --release
+#
+# Optional: pick an explicit target triple
+#   • Linux (x86_64):   cargo build --release --target x86_64-unknown-linux-gnu
+#   • Windows (MSVC):   cargo build --release --target x86_64-pc-windows-msvc
+#
+# Notes:
+#   - Per-profile tuning (opt-level, debug symbols, LTO, strip,
+#     codegen-units, etc.) is defined in Cargo.toml under
+#     [profile.dev] and [profile.release].
+#   - This file focuses on cross-target tweaks and convenient aliases.
+#   - Windows GNU has been intentionally removed; only Windows MSVC
+#     is considered below.
+# ======================================================================
+
+[alias]
+# Handy shortcuts:
+dev  = "build"
+rel  = "build --release"
+td   = "test --no-fail-fast"
+trl  = "test --release --no-fail-fast"
+bms  = "build --manifest-path Cargo.toml"        # root build, useful in workspaces
+fmtc = "fmt --all && clippy --all-targets --all-features -- -D warnings"
+
+# ----------------------------------------------------------------------
+# [build]
+# Global cargo build parameters, applied to all compilation targets.
+# ----------------------------------------------------------------------
+# Keep this section minimal; profile-specific knobs live in Cargo.toml.
+# If you set global rustflags here, they affect BOTH dev and release.
+# (We’ll rely on Cargo.toml profiles for codegen-units, strip, etc.)
+[build]
+rustflags = [
+  # ------------------------------------------------------------------
+  # -C embed-bitcode=no
+  # ------------------------------------------------------------------
+  # DO NOT EMBED LLVM BITCODE
+  # By default, Rust may embed LLVM bitcode inside compiled artifacts.
+  # This increases binary size and can leak internal IR, which
+  # creates potential intellectual property and security concerns.
+  #
+  # Setting to 'no':
+  #   ✓ Reduces binary size and prevents shipping internal IR.
+  #   ✓ Avoids exposing LLVM IR to reverse-engineering tools (Good for security).
+  #   ✓ Required for clean supply-chain artifacts when you don't rely on cross-crate LTO that needs bitcode.
+  #
+  "-C", "embed-bitcode=no",
+]
+
+# ----------------------------
+# Linux-specific adjustments
+# ----------------------------
+[target.'cfg(target_os = "linux")']
+rustflags = [
+  # ------------------------------------------------------------------
+  # -C link-arg=-Wl,--build-id=none
+  # ------------------------------------------------------------------
+  # Linux ELF binaries normally include a Build-ID section containing:
+  #   • a hash of the binary
+  #   • timestamps or certain non-deterministic metadata
+  #
+  # Disabling the build-id:
+  #   ✓ Improves reproducibility across machines.
+  #   ✓ Prevents leaking binary fingerprints when distributing artifacts.
+  #   ✓ Ensures minimal ELF metadata footprint.
+  #   ✓ Slightly smaller artifact.
+  #
+  # Tradeoffs:
+  #   ✗ Some debugging tools use build-id to locate symbols.
+  #     (Store debug info separately if needed.)
+  #
+  # This flag is essential for deterministic release builds in
+  # environments requiring bit-identical reproducibility.
+  #
+  "-C", "link-arg=-Wl,--build-id=none",
+]
+
+# ----------------------------
+# Windows (MSVC) adjustments
+# ----------------------------
+[target.'cfg(all(target_os = "windows", target_env = "msvc"))']
+rustflags = [
+  # Request link-time deterministic builds from the MSVC linker.
+  # Helps bit-for-bit repeatability in CI.
+  "-C", "link-arg=/BREPRO",
+  #
+  # (Optional) Make the PE image "large address aware" and NX compatible.
+  # These are generally defaults, but keeping them explicit doesn’t hurt:
+  # "-C", "link-arg=/LARGEADDRESSAWARE",
+  # "-C", "link-arg=/NXCOMPAT",
+]
