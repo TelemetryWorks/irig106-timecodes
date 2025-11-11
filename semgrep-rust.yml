@@ -1,0 +1,202 @@
+rules:
+  # ========= Safety =========
+  - id: rust.forbid-unsafe
+    languages: [rust]
+    message: "Unsafe Rust is forbidden."
+    severity: ERROR
+    patterns:
+      - pattern: |
+          unsafe { ... }
+    paths:
+      exclude:
+        - "tests/**"
+        - "**/*_test.rs"
+        - "benches/**"
+        - "examples/**"
+
+  - id: rust.transmute-or-unchecked
+    languages: [rust]
+    message: "Use of `transmute`/`*_unchecked` is unsafe and usually unnecessary."
+    severity: ERROR
+    pattern-either:
+      - pattern: std::mem::transmute(...)
+      - pattern: core::mem::transmute(...)
+      - pattern: $T::from_utf8_unchecked(...)
+      - pattern: $SL.get_unchecked(...)
+      - pattern: $SL.get_unchecked_mut(...)
+
+  # ========= Panics & macros =========
+  - id: rust.no-panicking-macros
+    languages: [rust]
+    message: "Panicking macro used (`panic!`, `todo!`, `unimplemented!`, `unreachable!`). Prefer Result/Option flows."
+    severity: ERROR
+    pattern-either:
+      - pattern: panic!(...)
+      - pattern: todo!(...)
+      - pattern: unimplemented!(...)
+      - pattern: unreachable!(...)
+    paths:
+      exclude:
+        - "tests/**"
+        - "**/*_test.rs"
+        - "benches/**"
+        - "examples/**"
+        - "build.rs"
+
+  - id: rust.no-dbg-or-prints
+    languages: [rust]
+    message: "Debug prints left in code (`dbg!`, `println!`, `eprintln!`, `print!`)."
+    severity: WARNING
+    pattern-either:
+      - pattern: dbg!(...)
+      - pattern: println!(...)
+      - pattern: eprintln!(...)
+      - pattern: print!(...)
+    paths:
+      exclude:
+        - "tests/**"
+        - "**/*_test.rs"
+        - "benches/**"
+        - "examples/**"
+    fix-regex:
+      # quick, safe auto-fix for bare dbg!(); leaves arguments in place commented out
+      regex: 'dbg!\((.*)\);?'
+      replacement: '// removed dbg!: \1'
+
+  # ========= unwrap/expect =========
+  - id: rust.no-unwrap-on-result-or-option
+    languages: [rust]
+    message: "Avoid `.unwrap()` on Result/Option in non-test code. Use `?` or handle the error."
+    severity: ERROR
+    pattern: $X.unwrap()
+    paths:
+      exclude:
+        - "tests/**"
+        - "**/*_test.rs"
+        - "benches/**"
+        - "examples/**"
+        - "build.rs"
+
+  - id: rust.expect-needs-message
+    languages: [rust]
+    message: "Prefer `.expect(\"meaningful message\")` over `.unwrap()` and ensure the message is non-empty."
+    severity: WARNING
+    patterns:
+      - pattern: $X.expect($MSG)
+      - metavariable-regex:
+          metavariable: $MSG
+          regex: '^"(?!\s*").{3,}"'   # crude check: at least 3 non-quote chars
+    paths:
+      exclude:
+        - "tests/**"
+        - "**/*_test.rs"
+        - "benches/**"
+        - "examples/**"
+
+  # ========= Async hygiene =========
+  - id: rust.no-blocking-in-async
+    languages: [rust]
+    message: "Blocking call in `async` context. Use async equivalents or `spawn_blocking`."
+    severity: ERROR
+    patterns:
+      - pattern-inside: |
+          async fn $F(... ) { ... }
+      - pattern-either:
+          - pattern: std::thread::sleep(...)
+          - pattern: std::fs::read(...)
+          - pattern: std::fs::read_to_string(...)
+          - pattern: std::fs::write(...)
+          - pattern: std::fs::remove_file(...)
+          - pattern: std::process::Command::new(...).output(...)
+          - pattern: std::process::Command::new(...).status(...)
+  - id: rust.no-thread-spawn-in-async
+    languages: [rust]
+    message: "Spawning OS threads in async contexts can starve executors; prefer runtime-specific spawning."
+    severity: WARNING
+    patterns:
+      - pattern-inside: |
+          async fn $F(... ) { ... }
+      - pattern: std::thread::spawn(...)
+
+  # ========= Attributes & lint hygiene =========
+  - id: rust.no-wide-lint-allows
+    languages: [rust]
+    message: "Broad lint allows make issues invisible. Avoid `#![allow(dead_code)]`, `#![allow(unused)]`, etc."
+    severity: WARNING
+    pattern-either:
+      - pattern: #![allow(dead_code)]
+      - pattern: #![allow(unused)]
+      - pattern: #![allow(unused_variables)]
+      - pattern: #![allow(clippy::all)]
+
+  - id: rust.no-allow-in-prod-mod
+    languages: [rust]
+    message: "Avoid per-item `#[allow(...)]` in production modules."
+    severity: INFO
+    pattern: #[allow($LINT)]
+    paths:
+      exclude:
+        - "tests/**"
+        - "**/*_test.rs"
+        - "benches/**"
+        - "examples/**"
+
+  # ========= Comments / TODOs =========
+  - id: rust.todo-comment
+    languages: [rust]
+    message: "Leftover TODO."
+    severity: WARNING
+    patterns:
+      - pattern: "// TODO: ..."
+    paths:
+      exclude:
+        - "tests/**"
+        - "**/*_test.rs"
+        - "benches/**"
+        - "examples/**"
+
+  # ========= APIs with footguns =========
+  - id: rust.duration-from-millis
+    languages: [rust]
+    message: "Prefer `Duration::from_secs_f64`/`from_millis` checks; watch for unit mistakes."
+    severity: INFO
+    pattern-either:
+      - pattern: std::time::Duration::from_millis($X)
+      - pattern: core::time::Duration::from_millis($X)
+
+  - id: rust.hashmap-default-hasher
+    languages: [rust]
+    message: "Large HashMap with default hasher may be slow; consider `hashbrown` or faster hasher in hot paths."
+    severity: INFO
+    pattern: std::collections::HashMap::<$K,$V>::new()
+
+  # ========= Performance footguns =========
+  - id: rust.unnecessary-clone
+    languages: [rust]
+    message: "Possible unnecessary `.clone()`. Consider borrowing instead."
+    severity: INFO
+    pattern: $X.clone()
+    pattern-not-inside: |
+      let $Y = $X.clone();
+    paths:
+      exclude:
+        - "tests/**"
+        - "**/*_test.rs"
+        - "benches/**"
+        - "examples/**"
+
+  # ========= Crate boundaries =========
+  - id: rust.no-println-in-library
+    languages: [rust]
+    message: "Avoid printing in library code; return errors or use logging."
+    severity: WARNING
+    pattern-either:
+      - pattern: println!(...)
+      - pattern: eprintln!(...)
+    paths:
+      exclude:
+        - "src/main.rs"
+        - "bin/**"
+        - "examples/**"
+        - "tests/**"
+        - "**/*_test.rs"
