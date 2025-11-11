@@ -1,0 +1,79 @@
+# --- Rust build artifacts ---
+target/
+**/target/
+
+# --- Git stuff ---
+.git/
+.git/**
+
+# --- Cargo & build metadata ---
+**/*.lock
+**/Cargo.lock
+
+# --- Node / JS tooling in repo (if any) ---
+node_modules/
+**/node_modules/
+
+# --- Python tooling noise (common in monorepos) ---
+__pycache__/
+**/__pycache__/
+
+# --- Generated code ---
+generated/
+**/generated/
+gen/
+**/gen/
+out/
+**/out/
+build/
+**/build/
+dist/
+**/dist/
+
+# --- Protobuf / Flatbuffers / Thrift generated sources ---
+*.pb.rs
+*.pbjson.rs
+*.proto.rs
+*.fbs.rs
+*.thrift.rs
+
+# --- Test fixtures (don’t lint payloads) ---
+tests/fixtures/**
+**/tests/fixtures/**
+fixtures/**
+**/fixtures/**
+
+# --- Benchmark datasets ---
+benches/data/**
+**/benches/data/**
+
+# --- Migrations (SQL, diesel, refinery, etc.) ---
+migrations/**
+**/migrations/**
+
+# --- Binary assets ---
+assets/**
+**/assets/**
+static/**
+**/static/**
+
+# --- Frontend build output (if repo is fullstack) ---
+public/
+**/public/
+dist/
+**/dist/
+
+# --- Ignore vendored dependencies explicitly ---
+vendor/
+**/vendor/
+third_party/
+**/third_party/
+deps/
+**/deps/
+
+# --- IDE-generated junk ---
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
