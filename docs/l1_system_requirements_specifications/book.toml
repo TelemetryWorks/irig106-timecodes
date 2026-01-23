@@ -1,0 +1,5 @@
+[book]
+title = "IRIG-106: L1 System Requirements Specification"
+authors = ["The Team at TelemetryWorks"]
+language = "en"
+src = "src"
